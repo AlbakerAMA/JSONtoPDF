@@ -2,6 +2,25 @@ import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 
+// Simple in-memory cache for PDFs (works within single serverless instance)
+const pdfCache = new Map<string, { data: Buffer; timestamp: number }>();
+
+// Clean up old cache entries (older than 30 minutes)
+const cleanupCache = () => {
+  const now = Date.now();
+  const maxAge = 30 * 60 * 1000; // 30 minutes
+  
+  const entries = Array.from(pdfCache.entries());
+  for (const [key, value] of entries) {
+    if (now - value.timestamp > maxAge) {
+      pdfCache.delete(key);
+    }
+  }
+};
+
+// Run cache cleanup periodically
+setInterval(cleanupCache, 5 * 60 * 1000); // Every 5 minutes
+
 export interface WorkoutData {
   title?: string;
   description?: string;
@@ -27,6 +46,7 @@ export interface PdfGenerationResult {
   filename: string;
   filepath: string;
   downloadUrl: string;
+  pdfData?: Buffer; // Add PDF data for direct serving
 }
 
 export class PDFGenerator {
@@ -67,7 +87,11 @@ export class PDFGenerator {
       const pdfContent = this.createSimplePDF(data);
       console.log('PDF content created, length:', pdfContent.length);
       
-      // Write the PDF content to file
+      // Store in cache for reliable access
+      pdfCache.set(filename, { data: pdfContent, timestamp: Date.now() });
+      console.log('PDF stored in cache');
+      
+      // Write the PDF content to file (for backup/debugging)
       console.log('Writing PDF content to file...');
       await fs.promises.writeFile(filepath, pdfContent);
       console.log('PDF file written successfully');
@@ -85,7 +109,8 @@ export class PDFGenerator {
       return {
         filename,
         filepath,
-        downloadUrl
+        downloadUrl,
+        pdfData: pdfContent // Include PDF data for direct serving
       };
 
     } catch (error) {
@@ -257,6 +282,16 @@ export class PDFGenerator {
     
     stream += 'ET\n';
     return stream;
+  }
+
+  static getPdfFromCache(filename: string): Buffer | null {
+    const cached = pdfCache.get(filename);
+    if (cached) {
+      console.log(`PDF found in cache: ${filename}`);
+      return cached.data;
+    }
+    console.log(`PDF not found in cache: ${filename}`);
+    return null;
   }
 
   static async cleanupFile(filepath: string): Promise<void> {

@@ -40,7 +40,8 @@ export async function POST(request: NextRequest) {
     const result = await PDFGenerator.generateWorkoutPDF(body.data);
     console.log('PDF generation completed:', {
       filename: result.filename,
-      downloadUrl: result.downloadUrl
+      downloadUrl: result.downloadUrl,
+      pdfDataSize: result.pdfData ? result.pdfData.length : 'No data'
     });
 
     // Schedule automatic cleanup if enabled
@@ -57,9 +58,11 @@ export async function POST(request: NextRequest) {
       data: {
         filename: result.filename,
         downloadUrl: result.downloadUrl,
+        directDownloadUrl: '/api/download-direct', // Alternative direct download
         expiresAt: autoCleanup 
           ? new Date(Date.now() + cleanupDelayMs).toISOString()
-          : null
+          : null,
+        note: 'If download fails, use directDownloadUrl with the same POST data'
       }
     }, { status: 200 });
 

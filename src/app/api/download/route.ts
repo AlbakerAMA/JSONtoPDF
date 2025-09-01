@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
+import { PDFGenerator } from '@/lib/pdfGenerator';
 
 export async function GET(request: NextRequest) {
   try {
@@ -29,17 +30,27 @@ export async function GET(request: NextRequest) {
     const filepath = path.join(tmpDir, filename);
 
     // Check if file exists
-    if (!fs.existsSync(filepath)) {
-      return NextResponse.json(
-        { error: 'File not found or has expired' },
-        { status: 404 }
-      );
+    let fileBuffer: Buffer;
+    
+    if (fs.existsSync(filepath)) {
+      console.log('Reading PDF from file system');
+      fileBuffer = await fs.promises.readFile(filepath);
+    } else {
+      console.log('File not found in file system, checking cache...');
+      const cachedPdf = PDFGenerator.getPdfFromCache(filename);
+      if (cachedPdf) {
+        console.log('PDF found in cache, serving from cache');
+        fileBuffer = cachedPdf;
+      } else {
+        console.log('PDF not found in cache either');
+        return NextResponse.json(
+          { error: 'File not found or has expired' },
+          { status: 404 }
+        );
+      }
     }
 
     try {
-      // Read the file
-      const fileBuffer = await fs.promises.readFile(filepath);
-      
       // Create response with proper headers for PDF download
       const response = new NextResponse(new Uint8Array(fileBuffer), {
         status: 200,
