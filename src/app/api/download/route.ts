@@ -41,7 +41,7 @@ export async function GET(request: NextRequest) {
       const fileBuffer = await fs.promises.readFile(filepath);
       
       // Create response with proper headers for PDF download
-      const response = new NextResponse(fileBuffer.buffer.slice(fileBuffer.byteOffset, fileBuffer.byteOffset + fileBuffer.byteLength), {
+      const response = new NextResponse(new Uint8Array(fileBuffer), {
         status: 200,
         headers: {
           'Content-Type': 'application/pdf',
