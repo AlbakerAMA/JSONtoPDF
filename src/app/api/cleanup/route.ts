@@ -7,7 +7,8 @@ import path from 'path';
 // You can call this endpoint manually: GET /api/cleanup
 export async function GET(request: NextRequest) {
   try {
-    const tmpDir = path.join(process.cwd(), 'tmp');
+    // In Vercel serverless functions, use /tmp directory
+    const tmpDir = '/tmp';
     
     // Check if tmp directory exists
     if (!fs.existsSync(tmpDir)) {

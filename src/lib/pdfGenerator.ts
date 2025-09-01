@@ -32,21 +32,21 @@ export interface PdfGenerationResult {
 export class PDFGenerator {
   private static ensureTmpDir(): string {
     try {
-      const tmpDir = path.join(process.cwd(), 'tmp');
-      console.log('Checking temp directory:', tmpDir);
+      // In Vercel serverless functions, use /tmp which is the only writable directory
+      const tmpDir = '/tmp';
+      console.log('Using Vercel serverless tmp directory:', tmpDir);
       
-      if (!fs.existsSync(tmpDir)) {
-        console.log('Creating temp directory...');
-        fs.mkdirSync(tmpDir, { recursive: true });
-        console.log('Temp directory created successfully');
+      // /tmp always exists in serverless environments, no need to create it
+      if (fs.existsSync(tmpDir)) {
+        console.log('Temp directory exists and is accessible');
       } else {
-        console.log('Temp directory already exists');
+        throw new Error('Serverless /tmp directory is not accessible');
       }
       
       return tmpDir;
     } catch (error) {
-      console.error('Error creating temp directory:', error);
-      throw new Error(`Failed to create temp directory: ${error}`);
+      console.error('Error accessing temp directory:', error);
+      throw new Error(`Failed to access temp directory: ${error}`);
     }
   }
 

@@ -24,8 +24,8 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Construct file path
-    const tmpDir = path.join(process.cwd(), 'tmp');
+    // Construct file path - use /tmp for Vercel serverless
+    const tmpDir = '/tmp';
     const filepath = path.join(tmpDir, filename);
 
     // Check if file exists

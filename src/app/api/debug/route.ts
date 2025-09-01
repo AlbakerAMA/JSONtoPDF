@@ -7,16 +7,14 @@ export async function GET(request: NextRequest) {
   try {
     console.log('=== Debug Test Endpoint Called ===');
     
-    // Test temp directory creation
-    const tmpDir = path.join(process.cwd(), 'tmp');
+    // Test temp directory access - use /tmp for Vercel serverless
+    const tmpDir = '/tmp';
     console.log('Temp directory path:', tmpDir);
     
     if (!fs.existsSync(tmpDir)) {
-      console.log('Creating temp directory...');
-      fs.mkdirSync(tmpDir, { recursive: true });
-      console.log('Temp directory created');
+      throw new Error('Vercel /tmp directory is not accessible');
     } else {
-      console.log('Temp directory already exists');
+      console.log('Temp directory exists and is accessible');
     }
     
     // Test file creation
