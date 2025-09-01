@@ -261,17 +261,25 @@ export class PDFGenerator {
 
   static async cleanupFile(filepath: string): Promise<void> {
     try {
+      console.log(`Attempting to cleanup file: ${filepath}`);
       if (fs.existsSync(filepath)) {
         await fs.promises.unlink(filepath);
+        console.log(`File cleaned up successfully: ${filepath}`);
+      } else {
+        console.log(`File does not exist (already cleaned?): ${filepath}`);
       }
     } catch (error) {
       console.error('Error cleaning up file:', error);
     }
   }
 
-  static scheduleCleanup(filepath: string, delayMs: number = 300000): void {
-    // Schedule file cleanup after 5 minutes by default
+  static scheduleCleanup(filepath: string, delayMs: number = 1800000): void {
+    // Schedule file cleanup after 30 minutes by default (1800000ms)
+    const cleanupTime = new Date(Date.now() + delayMs);
+    console.log(`Scheduling cleanup for ${filepath} at ${cleanupTime.toISOString()} (in ${delayMs/1000/60} minutes)`);
+    
     setTimeout(async () => {
+      console.log(`Executing scheduled cleanup for: ${filepath}`);
       await this.cleanupFile(filepath);
     }, delayMs);
   }

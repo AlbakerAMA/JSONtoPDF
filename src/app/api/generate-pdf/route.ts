@@ -31,8 +31,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Extract options with defaults
-    const { autoCleanup = true, cleanupDelayMs = 300000 } = body.options || {};
+    // Extract options with defaults (30 minutes = 1800000ms instead of 5 minutes)
+    const { autoCleanup = true, cleanupDelayMs = 1800000 } = body.options || {};
     console.log('Options extracted:', { autoCleanup, cleanupDelayMs });
 
     // Generate the PDF

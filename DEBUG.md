@@ -55,7 +55,7 @@ Use this JSON payload to test the `/api/generate-pdf` endpoint:
   },
   "options": {
     "autoCleanup": true,
-    "cleanupDelayMs": 300000
+    "cleanupDelayMs": 1800000
   }
 }
 ```
