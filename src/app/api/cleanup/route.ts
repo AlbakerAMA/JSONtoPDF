@@ -17,7 +17,7 @@ export async function GET(request: NextRequest) {
     // Read all files in tmp directory
     const files = await fs.promises.readdir(tmpDir);
     const currentTime = Date.now();
-    const maxAge = 4 * 60 * 60 * 1000; // 4 hours in milliseconds
+    const maxAge = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
     
     let cleanedCount = 0;
     let errorCount = 0;
