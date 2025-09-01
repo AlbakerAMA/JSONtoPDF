@@ -32,55 +32,83 @@ export interface PdfGenerationResult {
 
 export class PDFGenerator {
   private static ensureTmpDir(): string {
-    const tmpDir = path.join(process.cwd(), 'tmp');
-    if (!fs.existsSync(tmpDir)) {
-      fs.mkdirSync(tmpDir, { recursive: true });
+    try {
+      const tmpDir = path.join(process.cwd(), 'tmp');
+      console.log('Checking temp directory:', tmpDir);
+      
+      if (!fs.existsSync(tmpDir)) {
+        console.log('Creating temp directory...');
+        fs.mkdirSync(tmpDir, { recursive: true });
+        console.log('Temp directory created successfully');
+      } else {
+        console.log('Temp directory already exists');
+      }
+      
+      return tmpDir;
+    } catch (error) {
+      console.error('Error creating temp directory:', error);
+      throw new Error(`Failed to create temp directory: ${error}`);
     }
-    return tmpDir;
   }
 
   static async generateWorkoutPDF(data: WorkoutData): Promise<PdfGenerationResult> {
     return new Promise((resolve, reject) => {
       try {
+        console.log('Starting PDF generation with data:', JSON.stringify(data, null, 2));
+        
         const tmpDir = this.ensureTmpDir();
+        console.log('Temp directory created/verified:', tmpDir);
+        
         const filename = `workout_${uuidv4()}.pdf`;
         const filepath = path.join(tmpDir, filename);
+        console.log('Generated filepath:', filepath);
         
         // Create a new PDF document
+        console.log('Creating PDFDocument...');
         const doc = new PDFDocument({
           margin: 50,
           size: 'A4'
         });
+        console.log('PDFDocument created successfully');
 
         // Pipe the PDF to a file
+        console.log('Creating write stream...');
         const stream = fs.createWriteStream(filepath);
         doc.pipe(stream);
+        console.log('Stream created and piped');
 
         // Add header
+        console.log('Adding header...');
         this.addHeader(doc, data.title || 'Workout Schedule');
         
         // Add description if provided
         if (data.description) {
+          console.log('Adding description...');
           this.addDescription(doc, data.description);
         }
 
         // Add metadata section
         if (data.metadata) {
+          console.log('Adding metadata...');
           this.addMetadata(doc, data.metadata);
         }
 
         // Add workout schedule
         if (data.schedule && data.schedule.length > 0) {
+          console.log('Adding workout schedule...');
           this.addWorkoutSchedule(doc, data.schedule);
         }
 
         // Add footer
+        console.log('Adding footer...');
         this.addFooter(doc);
 
         // Finalize the PDF
+        console.log('Finalizing PDF...');
         doc.end();
 
         stream.on('finish', () => {
+          console.log('PDF generation completed successfully');
           const downloadUrl = `/api/download?file=${filename}`;
           resolve({
             filename,
@@ -90,10 +118,12 @@ export class PDFGenerator {
         });
 
         stream.on('error', (error) => {
+          console.error('Stream error:', error);
           reject(error);
         });
 
       } catch (error) {
+        console.error('PDF generation error:', error);
         reject(error);
       }
     });

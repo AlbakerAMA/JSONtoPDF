@@ -48,6 +48,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Error generating PDF:', error);
+    console.error('Error details:', {
+      name: error instanceof Error ? error.name : 'Unknown',
+      message: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined
+    });
     
     // Handle specific error types
     if (error instanceof SyntaxError) {
@@ -61,7 +66,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(
       { 
         error: 'Internal server error occurred while generating PDF',
-        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined,
+        errorType: error instanceof Error ? error.name : 'UnknownError'
       },
       { status: 500 }
     );
