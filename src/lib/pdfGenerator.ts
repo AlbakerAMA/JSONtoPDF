@@ -63,11 +63,22 @@ export class PDFGenerator {
       console.log('Generated filepath:', filepath);
       
       // Create a simple PDF content
+      console.log('Creating PDF content...');
       const pdfContent = this.createSimplePDF(data);
+      console.log('PDF content created, length:', pdfContent.length);
       
       // Write the PDF content to file
       console.log('Writing PDF content to file...');
       await fs.promises.writeFile(filepath, pdfContent);
+      console.log('PDF file written successfully');
+      
+      // Verify file exists
+      if (fs.existsSync(filepath)) {
+        console.log('PDF file verified to exist');
+      } else {
+        throw new Error('PDF file was not created');
+      }
+      
       console.log('PDF generation completed successfully');
 
       const downloadUrl = `/api/download?file=${filename}`;
@@ -79,6 +90,7 @@ export class PDFGenerator {
 
     } catch (error) {
       console.error('PDF generation error:', error);
+      console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace');
       throw error;
     }
   }
@@ -154,17 +166,22 @@ export class PDFGenerator {
   }
 
   private static generateContentStream(data: WorkoutData): string {
+    // Helper function to escape PDF string content
+    const escapePdfString = (str: string): string => {
+      return str.replace(/[()\\]/g, '\\$&');
+    };
+    
     let stream = 'BT\n';
     stream += '/F1 16 Tf\n';
     stream += '50 750 Td\n';
-    stream += `(${data.title || 'Workout Schedule'}) Tj\n`;
+    stream += `(${escapePdfString(data.title || 'Workout Schedule')}) Tj\n`;
     
     let yPos = 720;
     
     if (data.description) {
       stream += '/F1 12 Tf\n';
       stream += `50 ${yPos} Td\n`;
-      stream += `(Description: ${data.description}) Tj\n`;
+      stream += `(Description: ${escapePdfString(data.description)}) Tj\n`;
       yPos -= 20;
     }
     
@@ -176,31 +193,62 @@ export class PDFGenerator {
       
       if (data.metadata.createdBy) {
         stream += `50 ${yPos} Td\n`;
-        stream += `(Created by: ${data.metadata.createdBy}) Tj\n`;
+        stream += `(Created by: ${escapePdfString(data.metadata.createdBy)}) Tj\n`;
+        yPos -= 12;
+      }
+      
+      if (data.metadata.createdAt) {
+        stream += `50 ${yPos} Td\n`;
+        stream += `(Created on: ${escapePdfString(data.metadata.createdAt)}) Tj\n`;
+        yPos -= 12;
+      }
+      
+      if (data.metadata.duration) {
+        stream += `50 ${yPos} Td\n`;
+        stream += `(Duration: ${escapePdfString(data.metadata.duration)}) Tj\n`;
+        yPos -= 12;
+      }
+      
+      if (data.metadata.difficulty) {
+        stream += `50 ${yPos} Td\n`;
+        stream += `(Difficulty: ${escapePdfString(data.metadata.difficulty)}) Tj\n`;
         yPos -= 12;
       }
     }
     
-    if (data.schedule) {
+    if (data.schedule && data.schedule.length > 0) {
       stream += '/F1 14 Tf\n';
       stream += `50 ${yPos} Td\n`;
       stream += '(Workout Schedule) Tj\n';
       yPos -= 20;
       
       data.schedule.forEach(day => {
+        if (yPos < 50) { // Simple page break check
+          yPos = 750; // Reset to top of page
+        }
+        
         stream += '/F1 12 Tf\n';
         stream += `50 ${yPos} Td\n`;
-        stream += `(${day.day}) Tj\n`;
+        stream += `(${escapePdfString(day.day)}) Tj\n`;
         yPos -= 15;
         
         day.exercises.forEach((exercise, index) => {
-          stream += `/F1 10 Tf\n`;
+          if (yPos < 50) {
+            yPos = 750;
+          }
+          
+          stream += '/F1 10 Tf\n';
           stream += `60 ${yPos} Td\n`;
           let exerciseText = `${index + 1}. ${exercise.name}`;
           if (exercise.sets && exercise.reps) {
             exerciseText += ` - ${exercise.sets} sets x ${exercise.reps} reps`;
+          } else if (exercise.duration) {
+            exerciseText += ` - Duration: ${exercise.duration}`;
           }
-          stream += `(${exerciseText}) Tj\n`;
+          if (exercise.notes) {
+            exerciseText += ` (${exercise.notes})`;
+          }
+          stream += `(${escapePdfString(exerciseText)}) Tj\n`;
           yPos -= 12;
         });
         yPos -= 5;
