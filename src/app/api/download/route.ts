@@ -1,0 +1,102 @@
+import { NextRequest, NextResponse } from 'next/server';
+import fs from 'fs';
+import path from 'path';
+
+export async function GET(request: NextRequest) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const filename = searchParams.get('file');
+
+    // Validate filename parameter
+    if (!filename) {
+      return NextResponse.json(
+        { error: 'Missing required parameter: file' },
+        { status: 400 }
+      );
+    }
+
+    // Validate filename format (security check)
+    const filenameRegex = /^workout_[a-f0-9-]+\.pdf$/;
+    if (!filenameRegex.test(filename)) {
+      return NextResponse.json(
+        { error: 'Invalid filename format' },
+        { status: 400 }
+      );
+    }
+
+    // Construct file path
+    const tmpDir = path.join(process.cwd(), 'tmp');
+    const filepath = path.join(tmpDir, filename);
+
+    // Check if file exists
+    if (!fs.existsSync(filepath)) {
+      return NextResponse.json(
+        { error: 'File not found or has expired' },
+        { status: 404 }
+      );
+    }
+
+    try {
+      // Read the file
+      const fileBuffer = await fs.promises.readFile(filepath);
+      
+      // Create response with proper headers for PDF download
+      const response = new NextResponse(fileBuffer, {
+        status: 200,
+        headers: {
+          'Content-Type': 'application/pdf',
+          'Content-Disposition': `attachment; filename="${filename}"`,
+          'Content-Length': fileBuffer.length.toString(),
+          'Cache-Control': 'no-cache, no-store, must-revalidate',
+          'Pragma': 'no-cache',
+          'Expires': '0'
+        }
+      });
+
+      // Optional: Schedule immediate cleanup after download
+      // Uncomment the next line if you want to delete the file immediately after serving
+      // setTimeout(() => PDFGenerator.cleanupFile(filepath), 1000);
+
+      return response;
+
+    } catch (readError) {
+      console.error('Error reading file:', readError);
+      return NextResponse.json(
+        { error: 'Error reading file' },
+        { status: 500 }
+      );
+    }
+
+  } catch (error) {
+    console.error('Error in download endpoint:', error);
+    return NextResponse.json(
+      { 
+        error: 'Internal server error',
+        details: process.env.NODE_ENV === 'development' ? String(error) : undefined
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// Handle unsupported methods
+export async function POST() {
+  return NextResponse.json(
+    { error: 'Method not allowed. Use GET to download files.' },
+    { status: 405 }
+  );
+}
+
+export async function PUT() {
+  return NextResponse.json(
+    { error: 'Method not allowed. Use GET to download files.' },
+    { status: 405 }
+  );
+}
+
+export async function DELETE() {
+  return NextResponse.json(
+    { error: 'Method not allowed. Use GET to download files.' },
+    { status: 405 }
+  );
+}
