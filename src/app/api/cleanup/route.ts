@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import fs from 'fs';
 import path from 'path';
 
+// Manual cleanup endpoint - call this periodically to clean up old PDF files
+// Note: Automatic cron job was removed due to Vercel plan limitations
+// You can call this endpoint manually: GET /api/cleanup
 export async function GET(request: NextRequest) {
   try {
     const tmpDir = path.join(process.cwd(), 'tmp');
